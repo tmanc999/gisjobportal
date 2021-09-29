@@ -1,0 +1,181 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Leaflet template</title>
+  <!-- leaflet css -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-extra-markers@1.2.1/dist/css/leaflet.extra-markers.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css">
+ 
+
+  <style>
+      body {
+          margin: 0;
+          padding: 0;
+      }
+      #map {
+          width: 100%;
+          height: 100vh; 
+      }
+
+
+  </style>
+
+
+</head>
+
+<body>
+    <div id='map'></div>
+
+</body>
+</html>
+<!-- leaflet js -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+<script src="https://unpkg.com/leaflet-extra-markers@1.2.1/dist/js/leaflet.extra-markers.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+<script src="./data/point.js"></script>
+<script src="./data/alberta.js"></script>
+<script src="./data/ontario.js"></script>
+<script src="./data/british_columbia.js"></script>
+<script src="./data/proviance.js"></script>
+
+<script>
+    //map initialization
+    var map = L.map('map').setView([58.53063193617943, -100.16791520689804], 4);
+
+    
+    var EsriStreets = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+		attribution: 'Tiles &copy; Esri'
+	});
+
+    EsriStreets.addTo(map);
+
+    //google street
+    var googleStreets = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{
+        maxZoom: 20,
+        subdomains:['mt0','mt1','mt2','mt3']
+    });
+
+    
+
+    //google satellite
+    var googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
+        maxZoom: 20,
+        subdomains:['mt0','mt1','mt2','mt3']
+    });
+
+    // overlay feature
+    var redMarker = L.ExtraMarkers.icon({
+                        svg: true,
+                        markerColor:'#BA4A00',
+                        shape: 'square',
+                        svgOpacity:1,
+                        icon: 'fa',
+                        number: 12,
+                         
+                    });
+                 
+    var canProviance =  L.geoJSON(proviance, {
+                        style: {
+                            fill: false,
+                            weight: 1,
+                            color: 'purple'
+
+                        },
+                        // onEachFeature: function(feature, layer) {
+                        //     polygon = turf.multiPolygon(feature)
+                        //     center_lng = turf.centerOfMass(feature).geometry.coordinates[0]
+                        //     center_lat = turf.center(feature).geometry.coordinates[1]
+                        //     map_marker = L.marker([center_lat, center_lng], {icon: redMarker}).addTo(map)
+                            
+                        // }
+                    })
+
+    canProviance.addTo(map);
+
+    // creater marker clusters
+    var markerClusters = L.markerClusterGroup({
+                spiderfyShapePositions: function(count, centerPt) {
+                var distanceFromCenter = 35,
+                    markerDistance = 45,
+                    lineLength = markerDistance * (count - 1),
+                    lineStart = centerPt.y - lineLength / 2,
+                    res = [],
+                    i;
+
+                res.length = count;
+
+                for (i = count - 1; i >= 0; i--) {
+                    res[i] = new Point(centerPt.x + distanceFromCenter, lineStart + markerDistance * i);
+                }
+
+                return res;
+            }
+    });
+    var jobData = L.geoJSON(point, {
+                    onEachFeature: function (feature, layer) {
+                        var popup = layer.bindPopup(
+
+                                '<b>Job Title: </b>' + feature.properties.jobtitle + '<br>' +
+                                '<b>Company Name: </b>' + feature.properties.cmpName + '<br>' +
+                                '<b>Location: </b>' + feature.properties.cmpLoca + '<br>' +
+                                '<b>Post date: </b>' + feature.properties.postdate + '<br>' +
+                                '<b>Source: </b>' + feature.properties.source + '<br>' +
+                                '<a target="_blank" rel="noopener noreferrer" href="'+ feature.properties.joblink +'">Job Link</a>'
+                                )
+                        markerClusters.addLayer( popup )
+                        
+                    }
+                })
+    // jobData.addTo(map);
+    map.addLayer( markerClusters );
+
+    
+
+    // var polycoords = [];
+    // L.geoJSON(BC,{
+    //     onEachFeature: function(feature, layer) {
+    //         polycoords.push(feature.geometry.coordinates)
+    //     }
+    // })
+
+
+
+    
+
+    // improve: add a table to pop up window http://embed.plnkr.co/8qVoW5/
+    // improve: add cluster plugin https://github.com/Leaflet/Leaflet.markercluster#examples
+
+    // layer control
+    var baseMaps = {
+            "Default Map (EsriStreet)": EsriStreets,
+            "Google Street Map": googleStreets,
+            "Google Satellite Map": googleSat,
+            
+        };
+
+    var overlay = {
+        "Proviance Boundary": canProviance,
+        "Job Data": jobData,
+        "Cluster Layer": markerClusters
+
+    }
+
+   
+    var layer = new L.control.layers(
+        baseMaps,
+        overlay,
+        { collapsed: false},
+        ).addTo(map);
+
+
+
+
+
+</script>
